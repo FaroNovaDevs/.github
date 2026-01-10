@@ -1,0 +1,157 @@
+name: Auto Update Documentation
+
+on:
+  workflow_call:
+    inputs:
+      docs_folder:
+        description: 'Path to docs folder'
+        required: false
+        default: 'docs'
+        type: string
+      update_readme:
+        description: 'Update README.md'
+        required: false
+        default: true
+        type: boolean
+      update_changelog:
+        description: 'Update CHANGELOG.md'
+        required: false
+        default: true
+        type: boolean
+      update_docs_folder:
+        description: 'Update docs folder'
+        required: false
+        default: true
+        type: boolean
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: true
+
+jobs:
+  update-documentation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get tracker info
+        id: tracker
+        run: |
+          TRACKER_FILE=".github/docs-tracker.json"
+          if [ -f "$TRACKER_FILE" ]; then
+            LAST_COMMIT=$(jq -r '.last_processed_commit // empty' "$TRACKER_FILE")
+            echo "last_commit=$LAST_COMMIT" >> $GITHUB_OUTPUT
+            echo "tracker_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "last_commit=" >> $GITHUB_OUTPUT
+            echo "tracker_exists=false" >> $GITHUB_OUTPUT
+          fi
+          echo "current_commit=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Get commits to process
+        id: commits
+        run: |
+          if [ -n "${{ steps.tracker.outputs.last_commit }}" ]; then
+            # Get commits since last processed
+            COMMITS=$(git log --oneline ${{ steps.tracker.outputs.last_commit }}..${{ github.sha }} 2>/dev/null || git log --oneline -20)
+          else
+            # First run - get last 10 commits
+            COMMITS=$(git log --oneline -10)
+          fi
+
+          # Save to file for Claude to read
+          echo "$COMMITS" > /tmp/commits_to_process.txt
+          COMMIT_COUNT=$(echo "$COMMITS" | wc -l | tr -d ' ')
+          echo "count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+          echo "Commits to process:"
+          echo "$COMMITS"
+
+      - name: Get changed files
+        id: changes
+        run: |
+          if [ -n "${{ steps.tracker.outputs.last_commit }}" ]; then
+            FILES=$(git diff --name-only ${{ steps.tracker.outputs.last_commit }}..${{ github.sha }} 2>/dev/null || git diff --name-only HEAD~10)
+          else
+            FILES=$(git diff --name-only HEAD~10 2>/dev/null || git ls-files)
+          fi
+          echo "$FILES" > /tmp/changed_files.txt
+          echo "Changed files:"
+          echo "$FILES"
+
+      - name: Update documentation with Claude
+        if: steps.commits.outputs.count != '0'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            REPOSITORIO: ${{ github.repository }}
+            COMMIT ACTUAL: ${{ github.sha }}
+            ULTIMO COMMIT PROCESADO: ${{ steps.tracker.outputs.last_commit }}
+            TRACKER EXISTE: ${{ steps.tracker.outputs.tracker_exists }}
+
+            ## COMMITS A PROCESAR
+            Lee el archivo /tmp/commits_to_process.txt para ver los commits nuevos.
+
+            ## ARCHIVOS CAMBIADOS
+            Lee el archivo /tmp/changed_files.txt para ver qué archivos cambiaron.
+
+            ## TU TAREA
+
+            Analiza los commits nuevos y actualiza la documentacion del proyecto:
+
+            1. **CHANGELOG.md** (${{ inputs.update_changelog }}):
+               - Si update_changelog es true, actualiza o crea CHANGELOG.md
+               - Agrupa los cambios por tipo: Added, Changed, Fixed, Removed
+               - Incluye fecha y rango de commits procesados
+               - Mantén el historial anterior, solo agrega la nueva sección arriba
+
+            2. **README.md** (${{ inputs.update_readme }}):
+               - Si update_readme es true, actualiza README.md si los cambios lo ameritan
+               - Solo actualiza secciones relevantes (features, instalación, uso, etc.)
+               - NO cambies la estructura general, solo contenido que necesite actualización
+
+            3. **Carpeta ${{ inputs.docs_folder }}/** (${{ inputs.update_docs_folder }}):
+               - Si update_docs_folder es true, actualiza archivos en la carpeta docs
+               - Actualiza documentación técnica si hubo cambios en APIs, funciones, etc.
+               - Crea nuevos archivos de docs si se agregaron features significativas
+
+            4. **TRACKER** (OBLIGATORIO):
+               - Actualiza o crea el archivo .github/docs-tracker.json con:
+               ```json
+               {
+                 "last_processed_commit": "${{ github.sha }}",
+                 "last_update": "FECHA_ACTUAL_ISO",
+                 "commits_processed": NUMERO_DE_COMMITS
+               }
+               ```
+
+            ## REGLAS
+            - Solo actualiza documentación si hay cambios significativos
+            - Escribe en el mismo idioma que el proyecto usa
+            - Sé conciso pero informativo
+            - Si no hay cambios que documenter, solo actualiza el tracker
+            - HAZ COMMIT de todos los cambios al final
+
+          claude_args: |
+            --max-turns 15
+            --allowedTools "Read,Write,Edit,Bash(git:*),Bash(cat:*),Bash(ls:*)"
+
+      - name: Push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git diff --staged --quiet || git commit -m "docs: auto-update documentation [skip ci]
+
+          Updated by Claude Code Action
+          Processed commits up to: ${{ github.sha }}"
+          git push
