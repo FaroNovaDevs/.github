@@ -106,21 +106,27 @@ jobs:
 
             ## TU TAREA
 
-            Analiza los commits nuevos y actualiza la documentacion del proyecto:
+            Analiza los commits nuevos y actualiza la documentacion del proyecto.
+            PRIORIDAD: CHANGELOG > docs/ > README (el changelog es lo mas importante)
 
-            1. **CHANGELOG.md** (${{ inputs.update_changelog }}):
+            1. **CHANGELOG.md** (PRIORIDAD ALTA - ${{ inputs.update_changelog }}):
                - Si update_changelog es true, actualiza o crea CHANGELOG.md
                - Agrupa los cambios por tipo: Added, Changed, Fixed, Removed
                - Incluye fecha y rango de commits procesados
                - Mantén el historial anterior, solo agrega la nueva sección arriba
+               - Se detallado aqui, documenta todos los cambios relevantes
 
-            2. **README.md** (${{ inputs.update_readme }}):
-               - Si update_readme es true, actualiza README.md si los cambios lo ameritan
-               - Solo actualiza secciones relevantes (features, instalación, uso, etc.)
-               - NO cambies la estructura general, solo contenido que necesite actualización
+            2. **README.md** (PRIORIDAD BAJA - ${{ inputs.update_readme }}):
+               - IMPORTANTE: Mantén el README CONCISO y MINIMALISTA
+               - Solo actualiza si hay cambios MUY significativos (nueva feature principal, cambio de arquitectura)
+               - NO agregues detalles que pertenecen al CHANGELOG
+               - NO expandas secciones existentes innecesariamente
+               - En caso de duda, NO modifiques el README
+               - El README debe ser una vista rapida del proyecto, no documentacion exhaustiva
 
             3. **Carpeta ${{ inputs.docs_folder }}/** (${{ inputs.update_docs_folder }}):
                - Si update_docs_folder es true, actualiza archivos en la carpeta docs
+               - Aqui si puedes ser mas detallado con documentacion tecnica
                - Actualiza documentación técnica si hubo cambios en APIs, funciones, etc.
                - Crea nuevos archivos de docs si se agregaron features significativas
 
@@ -135,10 +141,10 @@ jobs:
                ```
 
             ## REGLAS
-            - Solo actualiza documentación si hay cambios significativos
+            - CHANGELOG es la prioridad, se detallado ahi
+            - README debe mantenerse CORTO y CONCISO - no lo satures
             - Escribe en el mismo idioma que el proyecto usa
-            - Sé conciso pero informativo
-            - Si no hay cambios que documenter, solo actualiza el tracker
+            - Si no hay cambios que documentar, solo actualiza el tracker
             - HAZ COMMIT de todos los cambios al final
 
           claude_args: |
