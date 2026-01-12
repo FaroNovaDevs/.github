@@ -89,6 +89,7 @@ jobs:
 
       - name: Update documentation with Claude
         if: steps.commits.outputs.count != '0'
+        continue-on-error: true  # Continue even if Claude hits max turns
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -148,7 +149,7 @@ jobs:
             - HAZ COMMIT de todos los cambios al final
 
           claude_args: |
-            --max-turns 15
+            --max-turns 30
             --allowedTools "Read,Write,Edit,Bash(git:*),Bash(cat:*),Bash(ls:*)"
 
       - name: Push changes
