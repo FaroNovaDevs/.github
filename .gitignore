@@ -1,0 +1,8 @@
+# Entire Checkpoints (metadata de sesiones AI)
+.entire/
+
+# Configuracion Claude (hooks locales)
+.claude/
+
+# Sistema
+.DS_Store
