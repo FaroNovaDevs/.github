@@ -1,6 +1,6 @@
-# Certainty-mvp Organization Workflows
+# FaroNovaDevs Organization Workflows
 
-Este repositorio contiene workflows reusables para todos los repos de la organización Certainty-mvp.
+Este repositorio contiene workflows reusables para todos los repos de la organización FaroNovaDevs.
 
 ## Workflows Disponibles
 
@@ -27,7 +27,7 @@ on:
 
 jobs:
   update-docs:
-    uses: Certainty-mvp/.github/.github/workflows/update-docs.yml@main
+    uses: FaroNovaDevs/.github/.github/workflows/update-docs.yml@main
     secrets: inherit
 ```
 
@@ -41,7 +41,7 @@ on:
 
 jobs:
   update-docs:
-    uses: Certainty-mvp/.github/.github/workflows/update-docs.yml@main
+    uses: FaroNovaDevs/.github/.github/workflows/update-docs.yml@main
     with:
       docs_folder: 'documentation'  # default: 'docs'
       update_readme: true           # default: true
