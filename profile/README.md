@@ -5,5 +5,4 @@ FaroNova es una empresa comprometida en mejorar la productividad de las empresas
 
 ### Para cualquier duda, contáctese con contacto@faronova.co
 
-# Para conocer nuestros productos
-# faronova.co
+# Para conocer nuestros productos www.faronova.co
